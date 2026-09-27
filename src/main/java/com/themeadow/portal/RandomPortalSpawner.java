@@ -51,7 +51,7 @@ public final class RandomPortalSpawner {
         if (meadowDimension == null) return; // Meadow dimension not registered yet
         if (random.nextDouble() > SPAWN_CHANCE_PER_CALL) return;
 
-        ServerLevel level = player.serverLevel();
+        ServerLevel level = player.level();
         BlockPos origin = player.blockPosition();
 
         WallSpot wallSpot = findWallSpot(level, origin, random);

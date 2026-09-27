@@ -40,7 +40,12 @@ public class ShepherdEntity extends PathfinderMob {
     public ShepherdEntity(EntityType<? extends PathfinderMob> type, Level level) {
         super(type, level);
         this.setPersistenceRequired();
-        this.noCulling = true; // it should stay "rendered" even when partially out of frustum, per far-watch spec
+    }
+
+    @Override
+    public boolean shouldRenderAtSqrDistance(double distance) {
+        // it should stay "rendered" even at long range / partially out of frustum, per far-watch spec
+        return true;
     }
 
     public static AttributeSupplier.Builder createAttributes() {
