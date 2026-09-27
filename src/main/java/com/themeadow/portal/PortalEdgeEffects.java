@@ -1,7 +1,6 @@
 package com.themeadow.portal;
 
 import net.minecraft.core.particles.DustParticleOptions;
-import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.phys.Vec3;
@@ -15,11 +14,11 @@ import java.util.UUID;
 
 /**
  * Drives the "glow at the edges + particle effects" look the user asked
- * for on the floating (jagged) Meadow portal, matching the reference
- * screenshot: a dense warm gold/peach particle trail tracing the torn
- * outline (like a portal-gun rift's rim effect), pulsing glow on the
- * detached shard fragments, and a light outward particle drift from the
- * portal's face so it reads as an active light source even at range.
+ * for on the floating (jagged) Meadow portal: a dense dark/black particle
+ * trail tracing the torn outline (like a portal-gun rift's rim effect),
+ * pulsing dark glow on the detached shard fragments, and a light outward
+ * particle drift from the portal's face so it reads as an active rift
+ * even at range.
  *
  * Deliberately server-side only (Level.sendParticles, confirmed unchanged
  * in the real 26.2 client jar - see NOTES_FOR_NEXT_AI.md). Server-spawned
@@ -42,9 +41,9 @@ import java.util.UUID;
 public final class PortalEdgeEffects {
     private PortalEdgeEffects() {}
 
-    // Warm gold/peach to match the reference screenshot's glow color.
-    private static final int GLOW_COLOR = 0xFFC98A; // RGB, matches DustParticleOptions(int rgb, float scale)
-    private static final int GLOW_COLOR_HOT = 0xFFE0B0; // slightly brighter variant, mixed in for sparkle
+    // Dark/black particle color per user request.
+    private static final int GLOW_COLOR = 0x0A0A0A;
+    private static final int GLOW_COLOR_HOT = 0x1A1A1A; // slightly lighter dark variant, mixed in for sparkle
     private static final float DUST_SCALE = 1.15f;
     // Outline is now emitted every tick (not gated to a slow interval) so
     // it reads as a persistent glowing rim rather than an occasional
@@ -68,13 +67,20 @@ public final class PortalEdgeEffects {
             for (ServerLevel level : server.getAllLevels()) {
                 Object entity = level.getEntity(entry.getKey());
                 if (entity instanceof Portal portal) {
-                    if (!portal.isAlive()) return true;
+                    if (!portal.isAlive()) {
+                        PortalLightInjector.clear(server.getAllLevels(), entry.getKey());
+                        return true;
+                    }
                     emitOutline(level, portal, entry.getValue());
                     if (pulseTick) emitShardsAndFace(level, portal, entry.getValue());
                     return false;
                 }
             }
-            return true; // portal not found in any loaded level anymore - drop it
+            // portal not found in any loaded level anymore - drop it and
+            // clear its light (search every level since we don't track
+            // which one it was last in).
+            PortalLightInjector.clear(server.getAllLevels(), entry.getKey());
+            return true;
         });
     }
 
@@ -103,10 +109,9 @@ public final class PortalEdgeEffects {
             int color = RANDOM.nextInt(3) == 0 ? GLOW_COLOR_HOT : GLOW_COLOR;
             DustParticleOptions dust = new DustParticleOptions(color, DUST_SCALE);
             level.sendParticles(dust, world.x, world.y, world.z, 1, 0.015, 0.015, 0.015, 0.0);
-
-            if (RANDOM.nextInt(5) == 0) {
-                level.sendParticles(ParticleTypes.END_ROD, world.x, world.y, world.z, 1, 0.01, 0.01, 0.01, 0.004);
-            }
+            // Note: ParticleTypes.END_ROD (bright/white, not colorable via
+            // DustParticleOptions) was removed here since it fought the
+            // dark look - dust-only keeps every particle actually black.
         }
     }
 

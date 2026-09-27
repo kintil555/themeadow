@@ -187,6 +187,7 @@ public final class RandomPortalSpawner {
             : JaggedPortalShape.build(JAGGEDNESS, random);
         portal.setPortalShape(shapeResult.shape());
         PortalEdgeEffects.track(portal, shapeResult);
+        PortalLightInjector.inject(level, portal, shapeResult);
         finishPortal(level, portal, random);
     }
 
