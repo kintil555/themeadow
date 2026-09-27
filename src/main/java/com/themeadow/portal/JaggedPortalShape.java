@@ -60,6 +60,36 @@ public final class JaggedPortalShape {
             }
         }
 
+        return finish(cell, jaggedness, random);
+    }
+
+    /**
+     * Wide cross/plus silhouette (matches the reference screenshot: a
+     * wide horizontal bar with a taller vertical bar through the middle,
+     * torn/blocky edges, small detached shards). Bar thickness is a
+     * fraction of GRID so it scales with the grid resolution.
+     */
+    public static Result buildCross(double jaggedness, Random random) {
+        boolean[][] cell = new boolean[GRID][GRID];
+
+        int hBarHalf = Math.max(1, GRID / 3);      // horizontal bar half-height
+        int vBarHalf = Math.max(1, (int) (GRID * 0.22)); // vertical bar half-width
+        int cx = GRID / 2, cy = GRID / 2;
+
+        for (int x = 0; x < GRID; x++) {
+            for (int y = 0; y < GRID; y++) {
+                boolean inHBar = Math.abs(y - cy) <= hBarHalf;
+                boolean inVBar = Math.abs(x - cx) <= vBarHalf;
+                if (inHBar || inVBar) {
+                    cell[x][y] = true;
+                }
+            }
+        }
+
+        return finish(cell, jaggedness, random);
+    }
+
+    private static Result finish(boolean[][] cell, double jaggedness, Random random) {
         int notchPasses = Math.max(1, (int) Math.round(jaggedness * GRID));
         for (int i = 0; i < notchPasses; i++) {
             stepBoundary(cell, random, jaggedness);

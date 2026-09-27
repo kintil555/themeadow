@@ -42,9 +42,13 @@ public final class RandomPortalSpawner {
     // --- tune these ---
     private static final double SPAWN_CHANCE_PER_CALL = 0.01; // caller decides call frequency
     private static final int SEARCH_RADIUS = 12;
-    private static final double PORTAL_WIDTH = 1.2;
-    private static final double PORTAL_HEIGHT = 2.2;
+    // Widened per reference screenshot: a broad cross-shaped rift, not a
+    // door-sized portal. JaggedPortalShape's cross-arm mode (see
+    // CROSS_SHAPED) already carves the plus silhouette inside this box.
+    private static final double PORTAL_WIDTH = 4.5;
+    private static final double PORTAL_HEIGHT = 3.2;
     private static final double JAGGEDNESS = 0.3;
+    private static final boolean CROSS_SHAPED = true;
 
     // Wall portal is pushed this far off the wall's face along the wall's
     // normal so it doesn't Z-fight with the wall texture, while staying
@@ -178,7 +182,9 @@ public final class RandomPortalSpawner {
         PortalAPI.setPortalPositionOrientationAndSize(
             portal, position, orientation, PORTAL_WIDTH, PORTAL_HEIGHT
         );
-        JaggedPortalShape.Result shapeResult = JaggedPortalShape.build(JAGGEDNESS, random);
+        JaggedPortalShape.Result shapeResult = CROSS_SHAPED
+            ? JaggedPortalShape.buildCross(JAGGEDNESS, random)
+            : JaggedPortalShape.build(JAGGEDNESS, random);
         portal.setPortalShape(shapeResult.shape());
         PortalEdgeEffects.track(portal, shapeResult);
         finishPortal(level, portal, random);
