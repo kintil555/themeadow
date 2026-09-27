@@ -18,12 +18,17 @@ repositories {
 }
 
 loom {
-	// 26.2 ships official Mojang mappings directly - no Yarn / officialMojangMappings() needed
+	// no per-remapping-namespace config needed beyond the `mappings`
+	// dependency below — 26.2 has no intermediary/yarn layer to configure
 }
 
 dependencies {
 	minecraft "com.mojang:minecraft:${project.minecraft_version}"
-	// 26.2 exposes Mojang mappings natively; no mapping layer artifact required
+	// 26.2 exposes Mojang mappings natively (no Yarn), but Loom still
+	// requires the `mappings` configuration to be populated — this is the
+	// Mojmap equivalent of a Yarn artifact, confirmed via Fabric's own
+	// mapping-migration docs (loom.officialMojangMappings()).
+	mappings loom.officialMojangMappings()
 	modImplementation "net.fabricmc:fabric-loader:${project.loader_version}"
 	modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
 
