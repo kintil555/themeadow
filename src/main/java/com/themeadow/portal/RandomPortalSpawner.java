@@ -16,6 +16,16 @@ import qouteall.q_misc_util.my_util.DQuaternion;
 import java.util.List;
 import java.util.Random;
 
+/*
+ * Spam fix (2026-09-27): trySpawnFor was called every server tick per
+ * player with only a flat SPAWN_CHANCE_PER_CALL roll and NO check for
+ * portals that already exist near the player. Over time that rolls
+ * "true" repeatedly and portals pile up around the player. Fixed by
+ * scanning for any already-alive Meadow-bound Portal entity within
+ * MIN_PORTAL_SPACING of the player first and bailing out if one exists,
+ * so there is only ever at most 1 Meadow portal near a given player.
+ */
+
 /**
  * Periodically (per server tick, gated by a chance roll) tries to spawn a
  * random portal to The Meadow near an online player: either wall-mounted
@@ -35,7 +45,16 @@ public final class RandomPortalSpawner {
     private static final double PORTAL_WIDTH = 1.2;
     private static final double PORTAL_HEIGHT = 2.2;
     private static final double JAGGEDNESS = 0.3;
-    private static final int EDGE_POINTS = 20;
+
+    // Wall portal is pushed this far off the wall's face along the wall's
+    // normal so it doesn't Z-fight with the wall texture, while staying
+    // close enough that it still reads as "on the wall" (not floating off
+    // it). Small on purpose - 0.02-0.05 blocks is enough to separate the
+    // depth buffer without being visually noticeable.
+    private static final double WALL_OFFSET = 0.03;
+    // Only one Meadow portal is allowed within this radius of a player at
+    // a time - trySpawnFor bails out early if one is already found here.
+    private static final double MIN_PORTAL_SPACING = SEARCH_RADIUS * 2.0;
 
     // TODO: replace with real Meadow dimension key once
     // data/themeadow/dimension/the_meadow.json is registered (see TODO #4).
@@ -49,6 +68,7 @@ public final class RandomPortalSpawner {
 
     public static void trySpawnFor(ServerPlayer player, Random random) {
         if (meadowDimension == null) return; // Meadow dimension not registered yet
+        if (hasNearbyMeadowPortal(player)) return; // cap: 1 portal near this player at a time
         if (random.nextDouble() > SPAWN_CHANCE_PER_CALL) return;
 
         ServerLevel level = player.level();
@@ -65,6 +85,20 @@ public final class RandomPortalSpawner {
         if (airSpot != null) {
             spawnFloating(level, Vec3.atCenterOf(airSpot), random);
         }
+    }
+
+    /**
+     * True if a Portal entity leading to The Meadow already exists within
+     * MIN_PORTAL_SPACING of the player. Filters by destination dimension
+     * (getDestDim()) rather than just "any Portal", so this doesn't get
+     * confused by unrelated Seamless Portals portals other mods/features
+     * might spawn.
+     */
+    private static boolean hasNearbyMeadowPortal(ServerPlayer player) {
+        AABB searchBox = player.getBoundingBox().inflate(MIN_PORTAL_SPACING);
+        List<Portal> nearby = player.level().getEntitiesOfClass(Portal.class, searchBox,
+            portal -> portal.isAlive() && meadowDimension.equals(portal.getDestDim()));
+        return !nearby.isEmpty();
     }
 
     private record WallSpot(BlockPos base, Direction facing) {}
@@ -116,12 +150,23 @@ public final class RandomPortalSpawner {
     private static void spawnWallMounted(ServerLevel level, WallSpot spot, Random random) {
         Portal portal = new Portal(Portal.ENTITY_TYPE, level);
         BlockPos front = spot.base().relative(spot.facing());
-        Vec3 min = Vec3.atLowerCornerOf(front);
+
+        // Push the portal plane a small amount off the wall along the
+        // wall's own normal (spot.facing() points away from the wall,
+        // into the open space the player stands in) so it doesn't share
+        // the exact same plane as the wall's block face and Z-fight with
+        // it. WALL_OFFSET is intentionally tiny - the portal still reads
+        // as "mounted flush on the wall", it's just not literally
+        // coplanar with the wall texture anymore.
+        Vec3 normal = spot.facing().getUnitVec3();
+        Vec3 min = Vec3.atLowerCornerOf(front).add(normal.scale(WALL_OFFSET));
         AABB area = new AABB(
             min.x, min.y, min.z,
             min.x + 1.0, min.y + 2.0, min.z + 1.0
         );
-        portal.setPos(Vec3.atCenterOf(front).x, front.getY(), Vec3.atCenterOf(front).z);
+        // setPortalOrthodoxShape positions the portal itself (from the
+        // AABB's center on the facing surface), so no separate setPos
+        // call is needed here.
         PortalAPI.setPortalOrthodoxShape(portal, spot.facing(), area);
         finishPortal(level, portal, random);
     }
@@ -133,7 +178,9 @@ public final class RandomPortalSpawner {
         PortalAPI.setPortalPositionOrientationAndSize(
             portal, position, orientation, PORTAL_WIDTH, PORTAL_HEIGHT
         );
-        portal.setPortalShape(JaggedPortalShape.build(JAGGEDNESS, EDGE_POINTS, random));
+        JaggedPortalShape.Result shapeResult = JaggedPortalShape.build(JAGGEDNESS, random);
+        portal.setPortalShape(shapeResult.shape());
+        PortalEdgeEffects.track(portal, shapeResult);
         finishPortal(level, portal, random);
     }
 

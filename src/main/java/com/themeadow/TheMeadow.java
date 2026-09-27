@@ -1,6 +1,7 @@
 package com.themeadow;
 
 import com.themeadow.entity.ShepherdEntity;
+import com.themeadow.portal.PortalEdgeEffects;
 import com.themeadow.portal.RandomPortalSpawner;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
@@ -56,6 +57,7 @@ public class TheMeadow implements ModInitializer {
             for (ServerPlayer player : server.getPlayerList().getPlayers()) {
                 RandomPortalSpawner.trySpawnFor(player, random);
             }
+            PortalEdgeEffects.tickAll(server);
         });
     }
 }
