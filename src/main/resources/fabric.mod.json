@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "id": "themeadow",
+  "version": "${version}",
+  "name": "The Meadow",
+  "description": "Adds a hidden pocket dimension, The Meadow, reachable through unstable rifts that tear open near you - watched over by the Shepherd.",
+  "authors": ["you"],
+  "contact": {},
+  "license": "All Rights Reserved",
+  "environment": "*",
+  "entrypoints": {
+    "main": ["com.themeadow.TheMeadow"],
+    "client": ["com.themeadow.TheMeadowClient"]
+  },
+  "mixins": [],
+  "depends": {
+    "fabricloader": ">=0.19.0",
+    "minecraft": ">=26.2",
+    "fabric-api": "*",
+    "seamlessportals": "*"
+  }
+}

@@ -1,0 +1,57 @@
+plugins {
+	id 'fabric-loom' version '1.15.2'
+	id 'maven-publish'
+}
+
+version = project.mod_version
+group = project.maven_group
+
+base {
+	archivesName = project.archives_base_name
+}
+
+repositories {
+	// Immersive Portals / Seamless Portals fork maven (Modrinth maven mirrors most fabric mods)
+	maven { url = "https://api.modrinth.com/maven" }
+	maven { url = "https://maven.terraformersmc.com/releases/" } // cloth-config (imm ptl dependency)
+	mavenCentral()
+}
+
+loom {
+	// 26.2 ships official Mojang mappings directly - no Yarn / officialMojangMappings() needed
+}
+
+dependencies {
+	minecraft "com.mojang:minecraft:${project.minecraft_version}"
+	// 26.2 exposes Mojang mappings natively; no mapping layer artifact required
+	modImplementation "net.fabricmc:fabric-loader:${project.loader_version}"
+	modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
+
+	// Seamless Portals (Immersive Portals fork) - bundles its own cloth-config jar-in-jar
+	modImplementation files("libs/seamlessportals-fabric-1_0_0.jar")
+}
+
+processResources {
+	inputs.property "version", project.version
+	filteringCharset "UTF-8"
+
+	filesMatching("fabric.mod.json") {
+		expand "version": project.version
+	}
+}
+
+tasks.withType(JavaCompile).configureEach {
+	it.options.release = 25
+}
+
+java {
+	withSourcesJar()
+	sourceCompatibility = JavaVersion.VERSION_25
+	targetCompatibility = JavaVersion.VERSION_25
+}
+
+jar {
+	from("LICENSE") {
+		rename { "${it}_${project.base.archivesName.get()}" }
+	}
+}
