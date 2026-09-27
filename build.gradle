@@ -24,16 +24,13 @@ loom {
 
 dependencies {
 	minecraft "com.mojang:minecraft:${project.minecraft_version}"
-	// 26.2 exposes Mojang mappings natively (no Yarn), but Loom still
-	// requires the `mappings` configuration to be populated — this is the
-	// Mojmap equivalent of a Yarn artifact, confirmed via Fabric's own
-	// mapping-migration docs (loom.officialMojangMappings()).
-	mappings loom.officialMojangMappings()
-	modImplementation "net.fabricmc:fabric-loader:${project.loader_version}"
-	modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
+	// No mappings line: Loom defaults to Mojang's official mappings on 26.x.
+	// disableObfuscation=true removes the mod* configs; use plain implementation.
+	implementation "net.fabricmc:fabric-loader:${project.loader_version}"
+	implementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
 
 	// Seamless Portals (Immersive Portals fork) - bundles its own cloth-config jar-in-jar
-	modImplementation files("libs/seamlessportals-fabric-1_0_0.jar")
+	implementation files("libs/seamlessportals-fabric-1_0_0.jar")
 }
 
 processResources {
